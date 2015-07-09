@@ -11,6 +11,7 @@ TESTS		=	t0001$(EXEEXT) t0002$(EXEEXT) t0003$(EXEEXT) t0004$(EXEEXT) \
 			ct_dynamic$(EXEEXT) blk_in2$(EXEEXT) datafmt$(EXEEXT) \
 			rpc_fail$(EXEEXT)
 
+unittests: $(check_PROGRAMS)
 check_PROGRAMS	=	$(TESTS)
 
 t0001_SOURCES		= t0001.c common.c common.h

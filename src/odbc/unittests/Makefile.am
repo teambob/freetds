@@ -27,6 +27,7 @@ TESTS		=	\
 			prepare_warn$(EXEEXT) long_error$(EXEEXT) mars1$(EXEEXT) \
 			array_error$(EXEEXT) describecol2$(EXEEXT) closestmt$(EXEEXT) bcp$(EXEEXT)
 
+unittests: $(check_PROGRAMS)
 check_PROGRAMS	=	$(TESTS) oldpwd$(EXEEXT)
 
 t0001_SOURCES	=	t0001.c common.c common.h

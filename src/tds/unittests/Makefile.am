@@ -11,6 +11,7 @@ TESTS		=	t0001$(EXEEXT) t0002$(EXEEXT) t0003$(EXEEXT)\
 # flags test commented, not necessary for 0.62
 # TODO add flags test again when needed
 
+unittests: $(check_PROGRAMS)
 check_PROGRAMS	=	$(TESTS)
 
 t0001_SOURCES	=	t0001.c common.c common.h

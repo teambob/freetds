@@ -1,5 +1,6 @@
 TESTS		=	mutex1$(EXEEXT) condition$(EXEEXT) strings$(EXEEXT) passarg$(EXEEXT) \
 			strtok_r$(EXEEXT)
+unittests: $(check_PROGRAMS)
 check_PROGRAMS	=	$(TESTS)
 
 mutex1_SOURCES	=	mutex1.c

@@ -19,6 +19,7 @@ AM_INIT_AUTOMAKE([dist-bzip2 parallel-tests subdir-objects])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES(yes)])
 AC_CONFIG_HEADERS(include/config.h)
 AC_CONFIG_MACRO_DIR([m4])
+AM_EXTRA_RECURSIVE_TARGETS(unittests)
 
 dnl configuration directory will be /usr/local/etc
 AC_PREFIX_DEFAULT(/usr/local)

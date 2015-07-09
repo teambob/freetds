@@ -11,6 +11,7 @@ TESTS		=	t0001$(EXEEXT) t0002$(EXEEXT) t0003$(EXEEXT)\
 			done_handling$(EXEEXT) timeout$(EXEEXT) \
 			hang$(EXEEXT) null$(EXEEXT) null2$(EXEEXT) \
 			setnull$(EXEEXT) numeric$(EXEEXT) pending$(EXEEXT)
+unittests: $(check_PROGRAMS)
 check_PROGRAMS	=	$(TESTS)
 
 SQL_DIST = 	bcp.sql dbmorecmds.sql done_handling.sql rpc.sql \
