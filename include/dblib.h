@@ -70,6 +70,7 @@ typedef struct
 	int null_value_len;
 	int tab_colnum;
 	int column_error;
+	BOOL escape;
 } BCP_HOSTCOLINFO;
 
 typedef struct 

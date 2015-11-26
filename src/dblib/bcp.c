@@ -85,6 +85,7 @@ static int rtrim(char *, int);
 static STATUS _bcp_read_hostfile(DBPROCESS * dbproc, FILE * hostfile, int *row_error);
 static int _bcp_readfmt_colinfo(DBPROCESS * dbproc, char *buf, BCP_HOSTCOLINFO * ci);
 static int _bcp_get_term_var(BYTE * pdata, BYTE * term, int term_len);
+static int _bcp_escape(TDS_UCHAR **buf, int buflen, char *terminator, int term_len);
 
 /*
  * "If a host file is being used ... the default data formats are as follows:
@@ -462,6 +463,7 @@ bcp_colfmt(DBPROCESS * dbproc, int host_colnum, int host_type, int host_prefixle
 	hostcol->tab_colnum = table_colnum;
 	hostcol->null_value = "\\N";
 	hostcol->null_value_len = 2;
+	hostcol->escape = TRUE;
 
 	return SUCCEED;
 }
@@ -963,6 +965,7 @@ _bcp_exec_out(DBPROCESS * dbproc, DBINT * rows_copied)
 			}
 
 			if (buflen > 0) {
+			  buflen = _bcp_escape(&data, buflen, NULL, 0);
 				if (fwrite(data, buflen, 1, hostfile) != 1)
 					goto write_error;
 			} else if (buflen == 0) {
@@ -2313,3 +2316,48 @@ _bcp_free_storage(DBPROCESS * dbproc)
 	}
 }
 
+
+static int _bcp_escape(TDS_UCHAR **buf, int inbuflen, char *terminator, int term_len)
+{
+    TDS_UCHAR *outbuf = NULL, *inbuf = *buf;
+    int in_index, out_index;
+    int outbuflen=inbuflen;
+
+    outbuf = (TDS_UCHAR*)malloc(MAX(inbuflen*2, 256));
+
+
+    for (in_index=0,out_index=0;in_index<inbuflen;in_index++) {
+        BYTE character = inbuf[in_index];
+
+        /* \\ \n \r \" \<terminator> \0 */
+        //TODO fill output buffer if available
+        switch(character){
+            case '\\':
+            case '\n':
+            case '\r':
+            case '\"':
+            case '\'':
+            case '\0':
+                outbuflen++;
+                outbuf[out_index++] = '\\';
+                outbuf[out_index++] = character;
+                break;
+
+            default:
+                // Escape if first character of terminator matches
+                // With multi-character terminators it may escape unecessarily
+                // which will take more space but will still be safe
+                if (term_len && character == terminator[0]) {
+                    outbuflen++;
+                    outbuf[out_index++] = '\\';
+                    outbuf[out_index++] = character;
+                }
+                else
+                    outbuf[out_index++] = character;
+        }
+
+    }
+    free(inbuf);
+    *buf = outbuf;
+    return outbuflen;
+}
