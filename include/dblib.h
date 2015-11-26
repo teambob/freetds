@@ -66,6 +66,8 @@ typedef struct
 	DBINT column_len;
 	BYTE *terminator;
 	int term_len;
+	BYTE *null_value;
+	int null_value_len;
 	int tab_colnum;
 	int column_error;
 } BCP_HOSTCOLINFO;

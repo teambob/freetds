@@ -460,6 +460,8 @@ bcp_colfmt(DBPROCESS * dbproc, int host_colnum, int host_type, int host_prefixle
 	hostcol->terminator = terminator;
 	hostcol->term_len = host_termlen;
 	hostcol->tab_colnum = table_colnum;
+	hostcol->null_value = "\\N";
+	hostcol->null_value_len = 2;
 
 	return SUCCEED;
 }
@@ -739,8 +741,11 @@ _bcp_convert_out(DBPROCESS * dbproc, TDSCOLUMN *curcol, BCP_HOSTCOLINFO *hostcol
 		 * to be confused with a database NULL, which is denoted in the output
 		 * file with an empty string!)
 		 */
-		(*p_data)[0] = 0;
-		buflen = 1;
+		if (!hostcol->null_value_len) {
+			(*p_data)[0] = 0;
+			buflen = 1;
+		} else
+			buflen = 0;
 	} else if (is_numeric_type(hostcol->datatype)) {
 		TDS_NUMERIC *num = (TDS_NUMERIC *) (*p_data);
 		if (is_numeric_type(srctype)) {
@@ -959,6 +964,9 @@ _bcp_exec_out(DBPROCESS * dbproc, DBINT * rows_copied)
 
 			if (buflen > 0) {
 				if (fwrite(data, buflen, 1, hostfile) != 1)
+					goto write_error;
+			} else if (buflen == 0) {
+				if (fwrite(hostcol->null_value, hostcol->null_value_len, 1, hostfile) != 1)
 					goto write_error;
 			}
 
