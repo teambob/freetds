@@ -743,11 +743,11 @@ _bcp_convert_out(DBPROCESS * dbproc, TDSCOLUMN *curcol, BCP_HOSTCOLINFO *hostcol
 		 * to be confused with a database NULL, which is denoted in the output
 		 * file with an empty string!)
 		 */
-		if (!hostcol->null_value_len) {
-			(*p_data)[0] = 0;
-			buflen = 1;
-		} else
-			buflen = 0;
+		if (!hostcol->null_value_len) { 
+		    (*p_data)[0] = 0;
+		    buflen = 1;
+    } else
+		  buflen = 0;
 	} else if (is_numeric_type(hostcol->datatype)) {
 		TDS_NUMERIC *num = (TDS_NUMERIC *) (*p_data);
 		if (is_numeric_type(srctype)) {
@@ -773,6 +773,7 @@ _bcp_convert_out(DBPROCESS * dbproc, TDSCOLUMN *curcol, BCP_HOSTCOLINFO *hostcol
 		if (buflen < 0)
 			return buflen;
 
+		buflen = _bcp_escape(&cr.c, buflen, hostcol->terminator, hostcol->term_len);
 		if (buflen >= 256) {
 			free(*p_data);
 			*p_data = (TDS_UCHAR *) cr.c;
@@ -945,7 +946,11 @@ _bcp_exec_out(DBPROCESS * dbproc, DBINT * rows_copied)
 
 			curcol = resinfo->columns[hostcol->tab_colnum - 1];
 
-			if (curcol->column_cur_size < 0) {
+			if (curcol->column_cur_size == -1) {
+				// NULL. Assume null_value_len < 256
+				buflen = hostcol->null_value_len;
+				memcpy(data, hostcol->null_value, hostcol->null_value_len);    
+			} else if (curcol->column_cur_size < 0) {
 				buflen = 0;
 			} else {
 				buflen = _bcp_convert_out(dbproc, curcol, hostcol, &data, bcpdatefmt);
@@ -964,12 +969,8 @@ _bcp_exec_out(DBPROCESS * dbproc, DBINT * rows_copied)
 				buflen = buflen > hostcol->column_len ? hostcol->column_len : buflen;
 			}
 
-			if (buflen > 0) {
-			  buflen = _bcp_escape(&data, buflen, NULL, 0);
+			if (buflen > 0) {			  
 				if (fwrite(data, buflen, 1, hostfile) != 1)
-					goto write_error;
-			} else if (buflen == 0) {
-				if (fwrite(hostcol->null_value, hostcol->null_value_len, 1, hostfile) != 1)
 					goto write_error;
 			}
 
@@ -2322,31 +2323,32 @@ static int _bcp_escape(TDS_UCHAR **buf, int inbuflen, char *terminator, int term
     TDS_UCHAR *outbuf = NULL, *inbuf = *buf;
     int in_index, out_index;
     int outbuflen=inbuflen;
-
+    
     outbuf = (TDS_UCHAR*)malloc(MAX(inbuflen*2, 256));
-
-
+    
     for (in_index=0,out_index=0;in_index<inbuflen;in_index++) {
         BYTE character = inbuf[in_index];
-
+        
         /* \\ \n \r \" \<terminator> \0 */
-        //TODO fill output buffer if available
         switch(character){
             case '\\':
             case '\n':
             case '\r':
             case '\"':
             case '\'':
-            case '\0':
+            case '\t':
+            case ',':
+            case '|':
                 outbuflen++;
                 outbuf[out_index++] = '\\';
                 outbuf[out_index++] = character;
                 break;
-
+                
             default:
                 // Escape if first character of terminator matches
                 // With multi-character terminators it may escape unecessarily
                 // which will take more space but will still be safe
+                // TODO: need to escape field delimiter and record delimiter properly
                 if (term_len && character == terminator[0]) {
                     outbuflen++;
                     outbuf[out_index++] = '\\';
@@ -2355,7 +2357,7 @@ static int _bcp_escape(TDS_UCHAR **buf, int inbuflen, char *terminator, int term
                 else
                     outbuf[out_index++] = character;
         }
-
+          
     }
     free(inbuf);
     *buf = outbuf;
